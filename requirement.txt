@@ -1,0 +1,5 @@
+PySide6
+pyserial==3.5
+pandas
+ffmpegcv
+picklerpc
