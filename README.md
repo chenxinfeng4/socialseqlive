@@ -43,7 +43,7 @@ python main.py
 
 ## 简明服务端、客户端的使用教程
 
-参考下面视频。
+参考下面视频 （assets/MovieS5_realtime_prediction_240821.mp4）。
 
 
 <video controls>
@@ -68,4 +68,3 @@ python main.py
 ## 注意
 
 演示视频中使用到了 USV的检测，但实际代码并不提供USV的判断和控制。当前代码只提供基础的关键点姿态行为判断。基于USV的闭环控制仍然在开发中，需要研究人员自行添加逻辑。
-
