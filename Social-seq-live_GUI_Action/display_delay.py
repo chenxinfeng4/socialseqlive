@@ -73,8 +73,8 @@ class PyThreadStimulate(threading.Thread, QObject):
         self.bhv_inds = bhv_inds
         self.downcounter = 20
         
-        self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tcp_socket.connect(('localhost', 20173))
+        # self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # self.tcp_socket.connect(('localhost', 20173))
 
     def run(self):
         # rpcclient = picklerpc.PickleRPCClient((self.ip, 8092))
@@ -92,8 +92,8 @@ class PyThreadStimulate(threading.Thread, QObject):
             if bhv_int in self.bhv_inds:
                 self.downcounter = 20
                 self.trigger.emit(True)
-                self.tcp_socket.send(b'start_record')
-                self.tcp_socket.recv(1024)
+                # self.tcp_socket.send(b'start_record')
+                # self.tcp_socket.recv(1024)
                 if self.obj_serial is not None and self.obj_serial.isValid:
                     self.obj_serial.send_message('b')
             else:

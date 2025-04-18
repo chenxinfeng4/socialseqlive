@@ -2,7 +2,7 @@ import picklerpc
 from ffmpegcv.stream_info import get_info
 from multiprocessing.pool import ThreadPool
 
-remove_rpc_ip_port = ('localhost', 8307)
+remove_rpc_ip_port = ('localhost', 8002)
 def check_stream_url(url):
     try:
         info = get_info(url, 2.8)
