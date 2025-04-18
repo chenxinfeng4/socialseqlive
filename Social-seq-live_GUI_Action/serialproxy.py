@@ -18,6 +18,7 @@ class SerialCommunicator:
         self.timeout = timeout
         self.serial_port = None
         self.isconnect = False
+        self.isValid:bool = False
 
     def connect(self):
         if self.isconnect:

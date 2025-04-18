@@ -9,7 +9,7 @@ from PySide6.QtGui import (
     QImage, QPixmap, QPainter,QPalette
 )
 
-from PySide6.QtCore import QSize, Qt, QThread, Signal
+from PySide6.QtCore import QSize, Qt, QThread, Signal, QTimer
 from serialproxy import list_serial_ports, SerialCommunicator, simulators
 import ffmpegcv
 
@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 
 from labels_profile import chk_box_bhv_list
-from display_delay import PyThreadDelay, PyThreadBhvUSVLabel
+from display_delay import PyThreadDelay, PyThreadBhvLabel, PyThreadStimulate
 from check_devices import check_stream_urls, check_cloud_server
 
 
@@ -54,7 +54,6 @@ class VideoThread(QThread):
                 self.frame_ready.emit(pixmap)  # 发送帧就绪信号
         forever = threading.Event() #不知道什么鬼原因，不能直接让QThread quit，所以用这个方法
         forever.wait()
-
 
 
 class CheckableComboBox(QComboBox):
@@ -128,7 +127,8 @@ class MainWindow(QWidget):
 
         # varibles
         self.pythread_delay = PyThreadDelay()
-        self.pythread_outlabel = PyThreadBhvUSVLabel()
+        self.pythread_outlabel = PyThreadBhvLabel()
+        self.pythread_stimu = PyThreadStimulate()
         self.bhv_items = []
         self.sitm_items = []
 
@@ -214,9 +214,10 @@ class MainWindow(QWidget):
         # 设置画面显示区域的大小和边框
         widget2.setMinimumSize(400, 350)
         # 设置画面显示区域的大小和边框
-        widget2.setStyleSheet("border: 2px solid black; background-color: #E0E0E0;")
+        widget2.setStyleSheet("border: 5px solid #F0F0F0; background-color: #E0E0E0;")
 
         widget2.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            
         self.pixelWidgets:List[QLabel] = [widget2, ]
         for widget in self.pixelWidgets:
             widget.setScaledContents(True)
@@ -259,15 +260,16 @@ class MainWindow(QWidget):
 
         arduino_layout = QVBoxLayout()
         arduino_layout.setSpacing(10)
-        usv_label2 = QLabel('   Stimulation:')
-        usv_label2.setFixedHeight(30)  # 将 QLabel 的最小高度设置为30
-        usv_label2.setFixedHeight(30)  # 将 QLabel 的最小高度设置为30
+        stimu_label = QLabel('   Stimulation:')
+        stimu_label.setFixedHeight(30)  # 将 QLabel 的最小高度设置为30
+        stimu_label.setFixedHeight(30)  # 将 QLabel 的最小高度设置为30
         self.arduino_comba = SingleCombaBox()
         self.arduino_comba.add_items(simulators)
         self.arduino_comba.setMaximumWidth(350)  # 设置最大宽度
         self.condiction_arduino_output = QLabel('')
 
-        arduino_layout.addWidget(usv_label2)
+        self.stimu_label = stimu_label
+        arduino_layout.addWidget(stimu_label)
         arduino_layout.addWidget(self.arduino_comba)
         right_layout.addLayout(condition_layout)
         right_layout.addLayout(arduino_layout)
@@ -295,7 +297,7 @@ class MainWindow(QWidget):
         widget2.moveEvent = lambda event: outcomelabel.setGeometry(widget2.x()+30, widget2.y() + widget2.height()-70, widget2.width()-60, 50) or \
                                     hint3.setGeometry(widget2.x(), widget2.y(), widget2.width(), 40)
         self.outcomelabel = outcomelabel
-
+        self.bhv_image = widget2
         font16 = QFont()
         font16.setPointSize(16)
 
@@ -372,6 +374,14 @@ class MainWindow(QWidget):
         self.vid_threads:List[VideoThread] = []
         self.vid_conn_handles:List[Signal] = []
 
+    def trigger_display(self, activate:bool):
+        if activate:
+            self.stimu_label.setStyleSheet("font-size: 28px; background-color: yellow;")
+            self.bhv_image.setStyleSheet("border: 5px solid yellow;")
+        else:
+            self.stimu_label.setStyleSheet("font-size: 28px;")
+            self.bhv_image.setStyleSheet("border: 5px solid #F0F0F0;")
+
     def condiction_bhv_combo_change(self, checkeditems):
         self.condiction_bhv_output.setText(','.join(checkeditems))
         self.bhv_items = checkeditems
@@ -411,10 +421,14 @@ class MainWindow(QWidget):
             else:
                 self.pythread_delay = PyThreadDelay(self.latency_input, self.cloud_ip)
                 self.pythread_delay.start()
-                self.pythread_outlabel = PyThreadBhvUSVLabel(self.outcomelabel, self.cloud_ip)
+                self.pythread_outlabel = PyThreadBhvLabel(self.outcomelabel)
                 self.pythread_outlabel.start()
+                bhv_inds = [int(x.strip()[1:].split(']')[0])-1 for x in self.bhv_items] # start from 0
+                self.pythread_stimu = PyThreadStimulate(bhv_inds, self.serialCommunicator)
+                self.pythread_stimu.start()
                 self.vid_threads.clear()
                 self.vid_conn_handles.clear()
+                self.pythread_stimu.trigger.connect(lambda x:self.trigger_display(x))
                 for ipannel, url in enumerate(self.video_pannels):
                     video_thread = VideoThread(ipannel, url)
                     self.vid_conn_handles.append(video_thread.frame_ready.connect(lambda x,i=ipannel:self.display_frame(i, x)))
@@ -429,12 +443,14 @@ class MainWindow(QWidget):
             self.cloud_ip_input.setEnabled(True)
             self.toggle_icon_status(0, False)
             self.toggle_icon_status(1, False)
+            # self.pythread_stimu.trigger.disconnect()
             for video_thread in self.vid_threads:
                 video_thread.to_continue = False
                 # video_thread.exit()
             self.vid_threads.clear()
             self.pythread_delay.to_continue = False
             self.pythread_outlabel.to_continue = False
+            self.pythread_stimu.to_continue = False
             self.latency_input.setText('----')
 
     def click_connect_arduino_button(self, status:bool):
