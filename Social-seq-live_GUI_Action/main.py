@@ -21,7 +21,10 @@ import numpy as np
 import pandas as pd
 
 from labels_profile import chk_box_bhv_list
-from display_delay import PyThreadDelay, PyThreadBhvLabel, PyThreadStimulate
+from display_delay import PyThreadDelay, PyThreadBhvLabel
+from display_delay import PyThreadStimulate
+
+
 from check_devices import check_stream_urls, check_cloud_server
 
 
@@ -246,6 +249,8 @@ class MainWindow(QWidget):
         self.condiction_bhv_output.setWordWrap(True)
         self.condiction_bhv_output.setFixedWidth(350)
         self.condiction_bhv_output.setFont(font14)
+        self.load_default_profile()
+
         hint_label = QLabel('Trigger ↓')
         hint_label.setFixedWidth(350)
         hint_label.setFont(font)
@@ -378,6 +383,7 @@ class MainWindow(QWidget):
         if activate:
             self.stimu_label.setStyleSheet("font-size: 28px; background-color: yellow;")
             self.bhv_image.setStyleSheet("border: 5px solid yellow;")
+            QTimer.singleShot(1000, lambda:self.trigger_display(False))   # auto reset
         else:
             self.stimu_label.setStyleSheet("font-size: 28px;")
             self.bhv_image.setStyleSheet("border: 5px solid #F0F0F0;")
@@ -395,6 +401,11 @@ class MainWindow(QWidget):
             f'rtsp://{ip}:8554/mystream_behaviorlabel_result',
         ]
 
+    def load_default_profile(self):
+        item_to_select = np.array([10, 23, 27, 28, 33, 34]) - 1 # start from 0
+        for item_i in item_to_select:
+            self.condiction_bhv_combo.model().item(item_i).setCheckState(Qt.Checked)
+        self.condiction_bhv_combo.update_display_text()
 
     def display_frame(self, ipannel, pixmap):
         self.pixelWidgets[ipannel].setPixmap(pixmap)

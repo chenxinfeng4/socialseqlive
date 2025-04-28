@@ -71,37 +71,86 @@ class PyThreadStimulate(threading.Thread, QObject):
         self.to_continue = True
         self.obj_serial = obj_serial
         self.bhv_inds = bhv_inds
-        self.downcounter = 20
-        
-        # self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.tcp_socket.connect(('localhost', 20173))
+        self.countdown = 30
+        self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.tcp_socket.connect(('localhost', 20173))
 
     def run(self):
         # rpcclient = picklerpc.PickleRPCClient((self.ip, 8092))
         rpcclient = picklerpc.PickleRPCClient(remove_rpc_ip_port)
         print("======begin stimuli condition")
-        # set the 'qwidgetstimu' font color to red
 
         # while self.to_continue and self.obj_serial.isValid:
         while self.to_continue:
+            time.sleep(0.034)
+            self.countdown = max(self.countdown-1, 0)
             try:
                 bhv_int:int = rpcclient.label_int()
             except:
                 rpcclient = picklerpc.PickleRPCClient(remove_rpc_ip_port)
                 bhv_int:int = rpcclient.label_int()
-            if bhv_int in self.bhv_inds:
-                self.downcounter = 20
+            if bhv_int in self.bhv_inds and self.countdown==0:
+                self.countdown = 30
+                print('do stimu')
                 self.trigger.emit(True)
-                # self.tcp_socket.send(b'start_record')
-                # self.tcp_socket.recv(1024)
+                self.tcp_socket.send(b'start_record')
+                self.tcp_socket.recv(1024)
                 if self.obj_serial is not None and self.obj_serial.isValid:
                     self.obj_serial.send_message('b')
-            else:
-                self.downcounter -= 1
-                if self.downcounter == 0:
-                    self.trigger.emit(False)
-            time.sleep(0.05)
         
         print("======end stimuli")
         self.trigger.emit(False)
+        rpcclient.disconnect()
+
+
+
+class PyThreadStimulateExclude(threading.Thread, QObject):
+    trigger:Signal = Signal(bool)
+
+    def __init__(self, bhv_inds:list=None, obj_serial:SerialCommunicator=None):
+        threading.Thread.__init__(self)
+        QObject.__init__(self)
+        self.to_continue = True
+        self.obj_serial = obj_serial
+        self.bhv_inds = bhv_inds
+        self.countdown = 30
+        self.label_int_queue = np.zeros([60], dtype=int) - 1
+        self.probability = 0.1
+        self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.tcp_socket.connect(('localhost', 20173))
+
+    def run(self):
+        # rpcclient = picklerpc.PickleRPCClient((self.ip, 8092))
+        rpcclient = picklerpc.PickleRPCClient(remove_rpc_ip_port)
+        print("======begin stimuli condition")
+
+        # while self.to_continue and self.obj_serial.isValid:
+        while self.to_continue:
+            time.sleep(0.034)
+            self.countdown = max(self.countdown-1, 0)
+            try:
+                bhv_int:int = rpcclient.label_int()
+            except:
+                rpcclient = picklerpc.PickleRPCClient(remove_rpc_ip_port)
+                bhv_int:int = rpcclient.label_int()
+            self.label_int_queue[:-1] = self.label_int_queue[1:]
+            self.label_int_queue[-1] = bhv_int
+            
+            if self.countdown != 0:
+                continue
+            self.countdown = 30
+            bool_in_bhv_inds = np.isin(self.label_int_queue, self.bhv_inds)
+            if np.sum(bool_in_bhv_inds) >= 6 or np.sum(bool_in_bhv_inds) >= 2:
+                continue
+            if np.random.rand() >= self.probability:
+                continue
+            print(self.label_int_queue, self.bhv_inds)
+            print('do stimu')
+            self.trigger.emit(True)
+            self.tcp_socket.send(b'start_record')
+            self.tcp_socket.recv(1024)
+            if self.obj_serial is not None and self.obj_serial.isValid:
+                self.obj_serial.send_message('b')
+
+        print("======end stimuli")
         rpcclient.disconnect()
