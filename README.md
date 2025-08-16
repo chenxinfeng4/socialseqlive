@@ -1,7 +1,8 @@
 # Social-seq-live Client GUI
 Link: [中文文档](README_CN.md)
 
-
+Detail can also be found in the documentation [Social_Seq](https://lilab-cibr.github.io/Social_Seq/%E9%97%AD%E7%8E%AF%E8%A1%8C%E4%B8%BA%E6%8E%A7%E5%88%B6/application/
+). The documentation includes the full framework, including the server and client.
 
 Real-time analysis of social behaviors in two rats based on the Social-seq-live framework, and decide whether to provide closed-loop optogenetic stimulation based on behavioral labels. This is the client part of Social-seq-live and does not include server code.
 
@@ -14,7 +15,7 @@ Real-time analysis of social behaviors in two rats based on the Social-seq-live 
 
 Record videos and stream them to the server; the server performs animal ID segmentation, keypoint reconstruction, behavior recognition, and generates labels; the client obtains the behavior labels and determines whether to execute optogenetic stimulation.
 
-![img](assets/social-seq-live-pipeline.jpg)
+![img](https://lilab-cibr.github.io/Social_Seq/assets/images/Fig7_closed-loop.jpg)
 
 ## Installing the Social-seq-live Client
 

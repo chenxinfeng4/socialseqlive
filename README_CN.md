@@ -1,6 +1,9 @@
 # Social-seq-live Client GUI
 Link:[English version](README.md)
 
+详细原理可以参照文档[Social_Seq](https://lilab-cibr.github.io/Social_Seq/%E9%97%AD%E7%8E%AF%E8%A1%8C%E4%B8%BA%E6%8E%A7%E5%88%B6/application/
+)。它包含云计算服务端配置和客户端配置完整流程。
+
 基于 Social-seq-live 框架，实现两只大鼠社交行为的实时分析，并根据行为标签决定是否给予闭环光遗传刺激。这里是 Social-seq-live 的客户端部分，不包含服务端代码。
 
 > **注意**
@@ -12,7 +15,7 @@ Link:[English version](README.md)
 
 录制视频并推流到服务器；服务器进行动物ID分割识别、关键点重构、行为识别并生成标签；客户端获取行为标签后判断是否需要执行光遗传刺激。
 
-![img](assets/social-seq-live-pipeline.jpg)
+![img](https://lilab-cibr.github.io/Social_Seq/assets/images/Fig7_closed-loop.jpg)
 
 ## 安装 Social-seq-live 客户端
 
