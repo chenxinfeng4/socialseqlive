@@ -9,18 +9,22 @@ from PySide6.QtGui import (
     QImage, QPixmap, QPainter,QPalette
 )
 
-from PySide6.QtCore import QSize, Qt, QThread, Signal
+from PySide6.QtCore import QSize, Qt, QThread, Signal, QTimer
 from serialproxy import list_serial_ports, SerialCommunicator, simulators
 import ffmpegcv
 
 
+import picklerpc
 import threading
 from typing import List
 import numpy as np
 import pandas as pd
 
-from labels_profile import chk_box_bhv_list, chk_box_usv_list, df_bhv_labels, df_usv_labels
-from display_delay import PyThreadDelay, PyThreadBhvUSVLabel, PyThreadStimulate
+from labels_profile import chk_box_bhv_list
+from display_delay import PyThreadDelay, PyThreadBhvLabel
+from display_delay import PyThreadStimulate
+
+
 from check_devices import check_stream_urls, check_cloud_server
 
 
@@ -53,7 +57,6 @@ class VideoThread(QThread):
                 self.frame_ready.emit(pixmap)  # 发送帧就绪信号
         forever = threading.Event() #不知道什么鬼原因，不能直接让QThread quit，所以用这个方法
         forever.wait()
-
 
 
 class CheckableComboBox(QComboBox):
@@ -113,12 +116,12 @@ class SingleCombaBox(QComboBox):
         if self.callback is not None:
             self.callback(self.currentText())
 
+
 class SingleLineEdit(QLineEdit):
     def __init__(self):
         super().__init__()
         self.setFont(QFont("Arial", 24))  # 设置下拉框的字体大小
         self.callback = None
-
 
 
 class MainWindow(QWidget):
@@ -127,10 +130,9 @@ class MainWindow(QWidget):
 
         # varibles
         self.pythread_delay = PyThreadDelay()
-        self.pythread_outlabel = PyThreadBhvUSVLabel()
+        self.pythread_outlabel = PyThreadBhvLabel()
         self.pythread_stimu = PyThreadStimulate()
         self.bhv_items = []
-        self.usv_items = []
         self.sitm_items = []
 
         # 设置主窗口标题
@@ -211,19 +213,15 @@ class MainWindow(QWidget):
         # 创建三个用于显示画面的Widget区域和标题
         title_font = QFont("Arial", 28, QFont.Bold)
         widget2 = QLabel()
-        widget3 = QLabel()
 
         # 设置画面显示区域的大小和边框
         widget2.setMinimumSize(400, 350)
-        widget3.setMinimumSize(600, 400)
         # 设置画面显示区域的大小和边框
-        widget2.setStyleSheet("border: 2px solid black; background-color: #E0E0E0;")
-        widget3.setStyleSheet("border: 2px solid black; background-color: #E0E0E0;")
+        widget2.setStyleSheet("border: 5px solid #F0F0F0; background-color: #E0E0E0;")
 
         widget2.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        widget3.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.widget3 = widget3
-        self.pixelWidgets:List[QLabel] = [widget2, widget3]
+            
+        self.pixelWidgets:List[QLabel] = [widget2, ]
         for widget in self.pixelWidgets:
             widget.setScaledContents(True)
         self.vid_threads:List[VideoThread] = []
@@ -231,7 +229,6 @@ class MainWindow(QWidget):
 
         # 将标题和画面显示区域添加到布局中
         # grid.addWidget(widget1, 3, 0, 1, 3)
-        grid.addWidget(widget3, 3, 0, 1, 6)
         grid.addWidget(widget2, 4, 0, 1, 6)
 
         # 创建右侧的标签和多选下拉列表，并使用嵌套布局
@@ -252,7 +249,9 @@ class MainWindow(QWidget):
         self.condiction_bhv_output.setWordWrap(True)
         self.condiction_bhv_output.setFixedWidth(350)
         self.condiction_bhv_output.setFont(font14)
-        hint_label = QLabel('AND')
+        self.load_default_profile()
+
+        hint_label = QLabel('Trigger ↓')
         hint_label.setFixedWidth(350)
         hint_label.setFont(font)
         hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -264,36 +263,6 @@ class MainWindow(QWidget):
         condition_layout.addWidget(hint_label)
         # connect condiction_bhv_combo changed signal to an callback
 
-        
-        condiction_usv_layout = QVBoxLayout()
-        condiction_usv_layout.setSpacing(2)
-        usv_label1 = QLabel('   USV labels')
-        usv_label1.setFixedHeight(30)  # 将 QLabel 的最小高度设置为30
-        # usv_label1.setStyleSheet("border: 1px solid red; margin: 0px; padding: 0px;")
-
-        self.condition_usv_combo = CheckableComboBox()
-        self.condiction_usv_output = QLabel('')
-        condiction_usv_layout.addWidget(usv_label1)
-        condiction_usv_layout.addWidget(self.condition_usv_combo)
-        condiction_usv_layout.addWidget(self.condiction_usv_output)
-        self.condition_usv_combo.add_checkable_items(chk_box_usv_list+['...'])
-        self.condition_usv_combo.setMaximumWidth(350)  # 设置最大宽度
-        self.condition_usv_combo.callback = self.condiction_usv_combo_change
-        
-        hint_label = QLabel('Trigger ↓')
-        hint_label.setFixedWidth(350)
-        hint_label.setFont(font)
-        hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        hint_label.setStyleSheet("color: #4CAF50")
-        self.condiction_usv_output.setWordWrap(True)
-        self.condiction_usv_output.setFixedWidth(350)
-        self.condiction_usv_output.setFont(font14)
-        self.condition_usv_combo.setMinimumHeight(30)  # 设置最小高度
-        self.condition_usv_combo.setMaximumWidth(350)  # 设置最大宽度
-        self.condition_usv_combo.setContentsMargins(0, 0, 0, 0)
-        self.condition_usv_combo.setStyleSheet("margin: 0px; padding: 0px;")
-        condiction_usv_layout.addWidget(hint_label)
-
         arduino_layout = QVBoxLayout()
         arduino_layout.setSpacing(10)
         stimu_label = QLabel('   Stimulation:')
@@ -303,11 +272,11 @@ class MainWindow(QWidget):
         self.arduino_comba.add_items(simulators)
         self.arduino_comba.setMaximumWidth(350)  # 设置最大宽度
         self.condiction_arduino_output = QLabel('')
+
         self.stimu_label = stimu_label
         arduino_layout.addWidget(stimu_label)
         arduino_layout.addWidget(self.arduino_comba)
         right_layout.addLayout(condition_layout)
-        right_layout.addLayout(condiction_usv_layout)
         right_layout.addLayout(arduino_layout)
 
         # 将右侧布局添加到网格布局，并紧贴右边框
@@ -317,8 +286,6 @@ class MainWindow(QWidget):
         latency_label = QLabel('Latency')
         self.latency_input = QLineEdit('----')
         self.latency_input.setReadOnly(True)
-        self.latency_usv = QLineEdit('----')
-        self.latency_usv.setReadOnly(True)
         outcomelabel = QLabel('<--BEHAVIOR LABEL-->', self)
         outcomelabel.setStyleSheet("background-color: rgba(255, 255, 255, 128); color: black")
 
@@ -326,33 +293,21 @@ class MainWindow(QWidget):
         # font18 = QFont()
         # font18.setPointSize(18)
         # outcomelabel.setFont(font)
-        hint2 = QLabel('USV classification  ', self)
-        # hint2.setStyleSheet("color: #CA64EA")
-        hint2.setFont(QFont("Arial", 16))
-        hint2.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         hint3 = QLabel('3D pose  ', self)
         # hint3.setStyleSheet("color: #0066B4")
         hint3.setFont(QFont("Arial", 16))
         hint3.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
 
         outcomelabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        widget3.moveEvent = lambda event: outcomelabel.setGeometry(widget3.x()+30, widget3.y() + widget3.height()-70, widget3.width()-60, 50) or \
-                                    hint3.setGeometry(widget3.x(), widget3.y(), widget3.width(), 40)
+        widget2.moveEvent = lambda event: outcomelabel.setGeometry(widget2.x()+30, widget2.y() + widget2.height()-70, widget2.width()-60, 50) or \
+                                    hint3.setGeometry(widget2.x(), widget2.y(), widget2.width(), 40)
         self.outcomelabel = outcomelabel
-
+        self.bhv_image = widget2
         font16 = QFont()
         font16.setPointSize(16)
-        outusvlabel = QLabel('<--USV LABEL-->', self)
-        outusvlabel.setFont(font16)
-        outusvlabel.setStyleSheet("background-color: rgba(255, 255, 255, 128); color: black")
-        outusvlabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.outusvlabel = outusvlabel
-        widget2.moveEvent = lambda event: outusvlabel.setGeometry(widget2.x()+5, widget2.y() + widget2.height()-45, widget2.width()-10, 40) or \
-                                    hint2.setGeometry(widget2.x(), widget2.y(), widget2.width(), 40)
 
         grid.addWidget(latency_label, 5, 0)
         grid.addWidget(self.latency_input, 5, 1)
-        grid.addWidget(self.latency_usv, 5, 2,1,3)
         # grid.addWidget(outcomelabel, 8, 2,1,3)
 
         # 创建 ICON 的水平布局区域
@@ -376,7 +331,7 @@ class MainWindow(QWidget):
         self.icon_states = {
             0: True,
             1: True,
-            2: True
+            2: True,
         }
 
         self.icon_buttons = []
@@ -415,33 +370,42 @@ class MainWindow(QWidget):
 
         # move window to the center of the screen
         screen_size = QScreen.availableGeometry(QApplication.primaryScreen())
-        x = (screen_size.width() - self.width()) / 2
-        y = max((screen_size.height()-200 - self.height()) / 2, 10)
-        w, h = 1010, 1000
+        w, h = 1050, 650
+        x = max((screen_size.width() - w) / 2, 10)
+        y = max((screen_size.height()-200 - h) / 2, 10)
+        
         self.setGeometry(x, y, w, h)
 
         self.vid_threads:List[VideoThread] = []
         self.vid_conn_handles:List[Signal] = []
 
+    def trigger_display(self, activate:bool):
+        if activate:
+            self.stimu_label.setStyleSheet("font-size: 28px; background-color: yellow;")
+            self.bhv_image.setStyleSheet("border: 5px solid yellow;")
+            QTimer.singleShot(1000, lambda:self.trigger_display(False))   # auto reset
+        else:
+            self.stimu_label.setStyleSheet("font-size: 28px;")
+            self.bhv_image.setStyleSheet("border: 5px solid #F0F0F0;")
+
     def condiction_bhv_combo_change(self, checkeditems):
         self.condiction_bhv_output.setText(','.join(checkeditems))
         self.bhv_items = checkeditems
-
-    def condiction_usv_combo_change(self, checkeditems):
-        self.condiction_usv_output.setText(','.join(checkeditems))
-        self.usv_items = checkeditems
 
     def update_urls(self):
         ip = self.cloud_ip_input.text().strip()
         self.cloud_ip = ip
         self.urls = [f'rtsp://{ip}:8554/mystream_9cam',
-                    # f'rtsp://{ip}:8554/mystream_usv',
                     f'rtsp://{ip}:8554/mystream_behaviorlabel_result']
         self.video_pannels = [
-            f'rtsp://{ip}:8554/mystream_usv_preview',
             f'rtsp://{ip}:8554/mystream_behaviorlabel_result',
         ]
 
+    def load_default_profile(self):
+        item_to_select = np.array([23, 27, 28, 33, 34]) - 1 # start from 0
+        for item_i in item_to_select:
+            self.condiction_bhv_combo.model().item(item_i).setCheckState(Qt.Checked)
+        self.condiction_bhv_combo.update_display_text()
 
     def display_frame(self, ipannel, pixmap):
         self.pixelWidgets[ipannel].setPixmap(pixmap)
@@ -452,8 +416,9 @@ class MainWindow(QWidget):
             self.disconnect_cloud_button.setEnabled(True)
             self.cloud_ip_input.setEnabled(False)
             self.update_urls()
-            valids = check_stream_urls(self.urls[:1])
+            valids = check_stream_urls(self.urls[:2])
             valids.append(check_cloud_server(self.cloud_ip))
+            print('valids', valids)
             self.toggle_icon_status(0, valids[0])
             self.toggle_icon_status(1, valids[1])
             if not all(valids):
@@ -465,20 +430,17 @@ class MainWindow(QWidget):
                 msg.setWindowTitle("Error")
                 msg.exec()
             else:
-                self.pythread_delay = PyThreadDelay(self.latency_input, self.latency_usv, self.cloud_ip)
+                self.pythread_delay = PyThreadDelay(self.latency_input, self.cloud_ip)
                 self.pythread_delay.start()
-                self.pythread_outlabel = PyThreadBhvUSVLabel(self.outcomelabel, self.outusvlabel, self.cloud_ip)
+                self.pythread_outlabel = PyThreadBhvLabel(self.outcomelabel)
                 self.pythread_outlabel.start()
-
                 bhv_inds = [int(x.strip()[1:].split(']')[0])-1 for x in self.bhv_items] # start from 0
-                usv_inds = [int(x.strip()[1:].split(']')[0])-1 for x in self.usv_items] # start from 0
-                self.pythread_stimu = PyThreadStimulate(bhv_inds, usv_inds, self.stimu_label, self.cloud_ip, self.serialCommunicator)
+                self.pythread_stimu = PyThreadStimulate(bhv_inds, self.serialCommunicator)
                 self.pythread_stimu.start()
-
                 self.vid_threads.clear()
                 self.vid_conn_handles.clear()
+                self.pythread_stimu.trigger.connect(lambda x:self.trigger_display(x))
                 for ipannel, url in enumerate(self.video_pannels):
-                    if ipannel==0: continue
                     video_thread = VideoThread(ipannel, url)
                     self.vid_conn_handles.append(video_thread.frame_ready.connect(lambda x,i=ipannel:self.display_frame(i, x)))
                     self.vid_threads.append(video_thread)
@@ -492,6 +454,7 @@ class MainWindow(QWidget):
             self.cloud_ip_input.setEnabled(True)
             self.toggle_icon_status(0, False)
             self.toggle_icon_status(1, False)
+            # self.pythread_stimu.trigger.disconnect()
             for video_thread in self.vid_threads:
                 video_thread.to_continue = False
                 # video_thread.exit()
@@ -500,7 +463,6 @@ class MainWindow(QWidget):
             self.pythread_outlabel.to_continue = False
             self.pythread_stimu.to_continue = False
             self.latency_input.setText('----')
-            self.latency_usv.setText('----')
 
     def click_connect_arduino_button(self, status:bool):
         if status:

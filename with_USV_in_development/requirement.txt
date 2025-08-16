@@ -1,4 +1,5 @@
-PySide6==6.7.2
+PySide6
 pyserial==3.5
 pandas
 ffmpegcv
+picklerpc

@@ -1,4 +1,3 @@
-
 import numpy as np
 import pyvirtualcam
 import tqdm
@@ -11,7 +10,7 @@ HOST, PORT = "0.0.0.0",20173
 
 downratio = 2
 width, height = 240//downratio, 120//downratio
-vout = pyvirtualcam.Camera(width=width+40, height=height, fps=30, device='OBS Virtual Camera')
+vout = pyvirtualcam.Camera(width=width+40, height=height, fps=30, device='OBS Virtual Camera') # device='OBS Virtual Camera'
 isactivate = False
 strn = '000'
 
@@ -60,13 +59,10 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
         try:
             while True:
-                #收消息
                 data = self.request.recv(1024)
                 msg = data.decode("utf-8").strip()
                 self.msgfilter(msg)
                 if not data:break
-                # print("收到客户端的消息是",data.decode("utf-8"))
-                #发消息
         except Exception as e:
             print(e)
 
@@ -90,11 +86,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 if __name__ == "__main__":
     threading.Thread(target=thread_cam, name='thread_cam').start()
 
-    # Create the server, binding to localhost on port 9999
     print('start socket server')
     with ThreadedTCPServer((HOST, PORT), MyTCPHandler) as server:
         # Activate the server; this will keep running until you
         # interrupt the program with Ctrl-C
         server.serve_forever()
-
-

@@ -2,10 +2,9 @@ import picklerpc
 from ffmpegcv.stream_info import get_info
 from multiprocessing.pool import ThreadPool
 
-remove_rpc_ip_port = ('localhost', 8002)
 def check_stream_url(url):
     try:
-        info = get_info(url, 2.8)
+        info = get_info(url, 1.6)
         assert info.width>100 and info.height>100
     except:
         return False
@@ -22,8 +21,8 @@ def check_stream_urls(urls):
 
 def check_cloud_server(ip):
     try:
-        # rpcclient = picklerpc.PickleRPCClient((ip, 8001))
-        rpcclient = picklerpc.PickleRPCClient(remove_rpc_ip_port)
+        # rpcclient = picklerpc.PickleRPCClient((ip, 8092))
+        rpcclient = picklerpc.PickleRPCClient(('localhost', 8001))
         result = rpcclient.about()
         assert result=='Social-seq live server'
         rpcclient.disconnect()

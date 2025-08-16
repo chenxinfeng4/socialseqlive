@@ -18,7 +18,7 @@ class SerialCommunicator:
         self.timeout = timeout
         self.serial_port = None
         self.isconnect = False
-        self.isValid:bool = False
+        self.isValid = False
 
     def connect(self):
         if self.isconnect:
@@ -34,13 +34,14 @@ class SerialCommunicator:
             self.isValid = False
             print(f"无法连接到串口 {self.com_port}: {e}")
 
-        time.sleep(0.5)
+        time.sleep(0.8)
         outcome = self.receive_message()
         self.isValid = outcome == "Hello from SeqLive-Arduino"
         if self.isValid:
             print("串口成功识别为 SeqLive-Arduino")
         else:
             print("串口未能识别为 SeqLive-Arduino")
+            print(outcome)
 
     def send_message(self, message):
         if self.serial_port:
@@ -63,6 +64,7 @@ class SerialCommunicator:
             if self.isconnect:
                 print(f"关闭串口 {self.com_port}")
         self.isconnect = False
+        self.isValid = False
 
     def __del__(self):
         self.close()

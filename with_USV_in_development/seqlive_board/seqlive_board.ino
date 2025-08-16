@@ -49,8 +49,40 @@ void cpp_HzDuty(int PinNum, float duration, float Hz, float Duty)
     }
     pot = (ut % uT_fast) < uT_div_fast;
     digitalWrite(PinNum, pot);
+    pinWriting(pot);
   }
   digitalWrite(PinNum, LOW);                               //when time out, auto close the PinNum.
+  pinWriting(LOW);
+}
+
+
+void pinWriting(boolean now_status)
+{
+  static boolean pre_status = 0;
+  static unsigned long t_raise = 0;
+  if(pre_status == LOW && now_status == HIGH) {
+    t_raise = millis();
+  }
+  else if(pre_status == HIGH && now_status == LOW) {
+    sendmsg("OUT", 1, t_raise, millis());
+  }
+  pre_status = now_status;
+}
+
+
+void sendmsg(char prefix[], int pin, unsigned long t_raise, unsigned long t_decline)
+{
+  char buf[40], temp[11];  //long is 10 char + '\0';
+  unsigned long AppBeginTime = time_bg;
+  buf[0] = '\0';
+  strcat(buf, prefix);
+  strcat(buf,itoa(pin, temp,10));
+  strcat(buf, ":");
+  strcat(buf, ultoa(t_raise - AppBeginTime, temp, 10));
+  strcat(buf, " ");
+  strcat(buf, ultoa(t_decline - t_raise, temp, 10));
+  strcat(buf, "\n");
+  Serial.print(buf);
 }
 
 
