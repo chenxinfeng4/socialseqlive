@@ -1,67 +1,57 @@
 # Social-seq-live Client GUI
+Link: [中文文档](README_CN.md)
 
-基于 Social-seq-live 框架，实现两只大鼠社交行为的实时分析，然后根据行为标签，决定是否给予闭环光遗传刺激。这里是  Social-seq-live 的客户端部分，并不包含服务端代码。
 
-!!! note "注意"
-  大鼠超声频谱分析（USV）目前是测试阶段，并不包含在主代码中。**目前发行版，只包含行为识别部分**。
+
+Real-time analysis of social behaviors in two rats based on the Social-seq-live framework, and decide whether to provide closed-loop optogenetic stimulation based on behavioral labels. This is the client part of Social-seq-live and does not include server code.
+
+> **Note**
+> Rat ultrasonic vocalization (USV) analysis is currently in the testing phase and is not included in the main code. **The current release only includes the behavior recognition part**.
 
 
 
 ![img](assets/social-seq-live-demo.gif)
 
-
-
-录制视频推流到服务器；服务器分割识别动物ID，关键点重构，行为识别，得到标签；客户端获取行为标签，判断是否需要执行光遗传刺激。
+Record videos and stream them to the server; the server performs animal ID segmentation, keypoint reconstruction, behavior recognition, and generates labels; the client obtains the behavior labels and determines whether to execute optogenetic stimulation.
 
 ![img](assets/social-seq-live-pipeline.jpg)
 
+## Installing the Social-seq-live Client
 
-
-## 安装  Social-seq-live 的客户端
-
-安装  Social-seq-live 的客户端。首先下载代码。
+First, download the code:
 
 ```bash
 git clone https://github.com/chenxinfeng4/social-seq-live-client-GUI
 cd social-seq-live-client-GUI*
 ```
 
-然后安装依赖包
+Then install the dependencies:
 
-```
+```bash
 pip install -r requirement.txt
 ```
 
+## Running the Client Software
 
-
-## 运行 客户端软件
-
-进入项目路径，找到 `main.py`.
+Navigate to the project directory and run `main.py`:
 
 ```bash
 python main.py
 ```
 
+## Brief Tutorial for Server and Client Usage
 
-
-## 简明服务端、客户端的使用教程
-
-参考下面视频 （assets/MovieS5_realtime_prediction_240821.mp4）。
-
+Refer to the following video (assets/MovieS5_realtime_prediction_240821.mp4):
 
 <video controls>
   <source src="assets/MovieS5_realtime_prediction_240821.mp4" type="video/mp4">
   Your browser does not support the video tag.
 </video>
 
-
-
-## 实时行为分析系统架构
+## Real-time Behavior Analysis System Architecture
 
 ![img](assets/social-seq-live-framework.jpg)
 
+Considering the limited performance of computers in experimental rooms, which makes it difficult to smoothly run optimized models, this project adopts cloud computing power. Data is uploaded to a remote high-performance deep learning server through Ethernet, utilizing its additional GPU resources (4× NVIDIA RTX3090). The connection between the client computer and the server is stable with high network quality, meeting the network performance requirements for cloud computing.
 
-
-考虑到实验间电脑性能有限，难以流畅运行优化后的模型，本课题采用了云计算的算力。通过以太网络将数据上传到远程的高性能深度学习服务器，利用其更多的GPU资源（4颗NVIDIA RTX3090）。客户端电脑与服务器之间的连接稳定，网络质量高，满足了云计算的网络性能要求。
-
-本课题开发了一套全新的计算架构，包括客户端电脑和服务器两个节点。客户端电脑负责采集视频数据并传输到云服务器，服务器执行动物行为分析流程，并将结果发回客户端电脑。客户端电脑再决定是否给予光遗传刺激。
+This project has developed a new computing architecture consisting of two nodes: a client computer and a server. The client computer is responsible for collecting video data and transmitting it to the cloud server. The server executes the animal behavior analysis process and sends the results back to the client computer, which then decides whether to provide optogenetic stimulation.
