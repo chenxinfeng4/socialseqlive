@@ -6,7 +6,7 @@ Language 🌐: [**中文**](README_cn.md) | English
 Welcome to the Social-Seq project! This is a system for analyzing multi-animal classification, 3D pose reconstruction, social behavior recognition, and social sequence labeling during close animal interactions. Through constructing a real-time closed-loop optogenetic intervention system, this project has potential applications in treating social deficits in autism spectrum disorder (ASD). ✨
 
 
-<font color="red"><a href="https://lilab-cibr.github.io/Social_Seq/"><b>Code download, Tutorial and Documentation</b> 🔗</a></font>
+<font color="red"><a href="https://lilab-cibr.github.io/Social_Seq/en"><b>Code download, Tutorial and Documentation</b> 🔗</a></font>
 
 <div align="center">
   <a href="https://lilab-cibr.github.io/Social_Seq/">
